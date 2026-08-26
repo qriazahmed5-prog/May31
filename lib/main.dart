@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'features/auth/login_screen.dart'; // Apna naya login page yahan import kar liya
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,33 +15,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'May31 App',
+      title: 'May31',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
         useMaterial3: true,
+        primarySwatch: Colors.blue,
       ),
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('May31 - Home'),
-        centerTitle: true,
-      ),
-      body: const Center(
-        child: Text(
-          'Bhai, Firebase successfully connected!\nApp bilkul tayar hai.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ),
+      // App khulte hi ab sabse pehle LoginScreen chalegi
+      home: const LoginScreen(), 
     );
   }
 }
