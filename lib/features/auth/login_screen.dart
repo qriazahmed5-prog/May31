@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../chat/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _otpSent = false;
   bool _isLoading = false;
 
-  // 1. Phone number par OTP bhejne ka function
+  // Phone number par OTP bhejne ka function
   void _verifyPhoneNumber() async {
     final phoneNumber = _phoneController.text.trim();
     if (phoneNumber.isEmpty || phoneNumber.length < 10) {
@@ -34,6 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
         await _auth.signInWithCredential(credential);
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
       },
       verificationFailed: (FirebaseAuthException e) {
         setState(() { _isLoading = false; });
@@ -57,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 2. OTP verify karne ka function
+  // OTP verify karke Home Screen par bhejne ka function
   void _verifyOTP() async {
     final otp = _otpController.text.trim();
     if (otp.length < 6) {
@@ -79,8 +85,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       setState(() { _isLoading = false; });
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login successful! Welcome to May31 🎉')),
+      if (!mounted) return;
+      // Login successful hote hi seedha Home Screen par le jayega
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } catch (e) {
       setState(() { _isLoading = false; });
