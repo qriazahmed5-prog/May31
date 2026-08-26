@@ -21,9 +21,43 @@ jobs:
     - name: Set up Flutter SDK
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.x'
+        flutter-version: '3.19.6'
         channel: 'stable'
         cache: true
+
+    - name: Generate complete Android platform
+      run: flutter create . --platforms=android --org com.example --project-name may31
+
+    - name: Wire Google Services for Firebase
+      run: |
+        python3 - <<'PY'
+        from pathlib import Path
+        import re
+
+        settings = Path("android/settings.gradle")
+        s = settings.read_text()
+        if "com.google.gms.google-services" not in s:
+            s2, n = re.subn(
+                r'(id\s+"org\.jetbrains\.kotlin\.android"[^\n]+)',
+                r'\1\n    id "com.google.gms.google-services" version "4.4.2" apply false',
+                s,
+                count=1,
+            )
+            if n == 0:
+                raise SystemExit("Could not patch android/settings.gradle")
+            settings.write_text(s2)
+
+        app_path = Path("android/app/build.gradle")
+        a = app_path.read_text()
+        if "com.google.gms.google-services" not in a:
+            a = a.replace(
+                'id "dev.flutter.flutter-gradle-plugin"',
+                'id "dev.flutter.flutter-gradle-plugin"\n    id "com.google.gms.google-services"',
+            )
+        a = a.replace("minSdkVersion flutter.minSdkVersion", "minSdkVersion 21")
+        app_path.write_text(a)
+        print("Patched Gradle for Firebase")
+        PY
 
     - name: Install Dependencies
       run: flutter pub get
