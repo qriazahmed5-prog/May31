@@ -8,6 +8,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dkotlin.incremental=false -Xmx4g -XX:MaxMetaspaceSize=1g"
+
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -28,7 +31,10 @@ jobs:
     - name: Generate complete Android platform
       run: flutter create . --platforms=android --org com.example --project-name may31
 
-    - name: Wire Google Services for Firebase
+    - name: Remove duplicate MainActivity
+      run: rm -rf android/app/src/main/java
+
+    - name: Fix Kotlin, memory, and Firebase
       run: |
         python3 - <<'PY'
         from pathlib import Path
@@ -36,16 +42,22 @@ jobs:
 
         settings = Path("android/settings.gradle")
         s = settings.read_text()
+        s = re.sub(
+            r'id "org\.jetbrains\.kotlin\.android" version "[^"]+"',
+            'id "org.jetbrains.kotlin.android" version "1.9.22"',
+            s,
+        )
         if "com.google.gms.google-services" not in s:
             s2, n = re.subn(
-                r'(id\s+"org\.jetbrains\.kotlin\.android"[^\n]+)',
+                r'(id "org\.jetbrains\.kotlin\.android"[^\n]+)',
                 r'\1\n    id "com.google.gms.google-services" version "4.4.2" apply false',
                 s,
                 count=1,
             )
             if n == 0:
                 raise SystemExit("Could not patch android/settings.gradle")
-            settings.write_text(s2)
+            s = s2
+        settings.write_text(s)
 
         app_path = Path("android/app/build.gradle")
         a = app_path.read_text()
@@ -55,8 +67,20 @@ jobs:
                 'id "dev.flutter.flutter-gradle-plugin"\n    id "com.google.gms.google-services"',
             )
         a = a.replace("minSdkVersion flutter.minSdkVersion", "minSdkVersion 21")
+        if "minifyEnabled" not in a:
+            a = a.replace(
+                "signingConfig signingConfigs.debug",
+                "signingConfig signingConfigs.debug\n            minifyEnabled false\n            shrinkResources false",
+            )
         app_path.write_text(a)
-        print("Patched Gradle for Firebase")
+
+        Path("android/gradle.properties").write_text(
+            "org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G -XX:+HeapDumpOnOutOfMemoryError\n"
+            "android.useAndroidX=true\n"
+            "android.enableJetifier=true\n"
+            "kotlin.incremental=false\n"
+        )
+        print("Patched Kotlin 1.9.22, memory, and Firebase")
         PY
 
     - name: Install Dependencies
